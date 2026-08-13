@@ -44,7 +44,7 @@ interface Record {
   visibility?: string;
 }
 
-export async function fetchDryad(pagesPerTerm = 8): Promise<Dataset[]> {
+export async function fetchDryad(pagesPerTerm = 6): Promise<Dataset[]> {
   const byId = new Map<string, Dataset>();
 
   for (const term of TERMS) {

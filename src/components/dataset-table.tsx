@@ -10,13 +10,18 @@ import { datasetHref } from "@/components/dataset-row";
  * and every number sits in the same place on every row.
  */
 export function DatasetTable({ datasets }: { datasets: Dataset[] }) {
+  // Channel counts exist for a minority of records, so the column only earns
+  // its width when something on this page actually has one.
+  const showChannels = datasets.some((d) => d.channels);
+
   return (
     <div className="mt-4 overflow-x-auto border border-hairline bg-surface">
-      <table className="w-full min-w-[680px] border-collapse text-left">
+      <table className={`w-full ${showChannels ? "min-w-[760px]" : "min-w-[680px]"} border-collapse text-left`}>
         <thead>
           <tr className="border-b border-hairline">
             <Th className="w-[42%]">Dataset</Th>
             <Th>Modality</Th>
+            {showChannels && <Th className="text-right">Channels</Th>}
             <Th className="text-right">Subjects</Th>
             <Th className="text-right">Size</Th>
             <Th className="text-right">Deposited</Th>
@@ -58,6 +63,9 @@ export function DatasetTable({ datasets }: { datasets: Dataset[] }) {
                     {dataset.modalities.map((m) => MODALITY_LABELS[m] ?? m).join(" · ") || "—"}
                   </span>
                 </td>
+                {showChannels && (
+                  <Td>{dataset.channels ? formatCount(dataset.channels) : "—"}</Td>
+                )}
                 <Td>{dataset.subjects ? formatCount(dataset.subjects) : "—"}</Td>
                 <Td>{dataset.sizeBytes ? formatBytes(dataset.sizeBytes) : "—"}</Td>
                 <Td>{dataset.created.slice(0, 10) || "—"}</Td>

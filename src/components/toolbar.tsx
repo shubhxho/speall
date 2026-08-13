@@ -106,6 +106,8 @@ export function Toolbar({ q, sort, view, chips, summary }: Props) {
                   source: null,
                   modality: null,
                   species: null,
+                  channels: null,
+                  system: null,
                   from: null,
                   to: null,
                   q: null,

@@ -51,6 +51,8 @@ export default async function Home({ searchParams }: PageProps<"/">) {
     sources: query.sources,
     modalities: query.modalities,
     species: query.species,
+    channels: query.channels,
+    systems: query.systems,
   };
   const failed = registry.report.filter((row) => !row.ok);
   const archiveLabels = Object.values(SOURCES).map((meta) => meta.label);
@@ -171,9 +173,13 @@ export default async function Home({ searchParams }: PageProps<"/">) {
           archive wins and the mirror is dropped.
         </p>
         {failed.length > 0 && (
-          <p className="readout mt-3 text-ink-muted">
-            Unreachable at last index:{" "}
-            {failed.map((row) => SOURCES[row.source as SourceId].label).join(", ")}
+          <p className="mt-3 text-[0.8125rem] leading-relaxed text-ink-muted">
+            {failed.map((row) => {
+              const label = SOURCES[row.source as SourceId].label;
+              return row.stale
+                ? `${label} was unreachable at the last index; its ${formatCount(row.count)} records are carried over from the previous run.`
+                : `${label} was unreachable at the last index and contributed nothing.`;
+            })}
           </p>
         )}
       </footer>
@@ -181,6 +187,6 @@ export default async function Home({ searchParams }: PageProps<"/">) {
   );
 }
 
-function chipsCount(active: { sources: string[]; modalities: string[]; species: string[] }) {
-  return active.sources.length + active.modalities.length + active.species.length;
+function chipsCount(active: Record<string, string[]>) {
+  return Object.values(active).reduce((sum, values) => sum + values.length, 0);
 }

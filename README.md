@@ -46,6 +46,8 @@ npm test   # 27 tests over normalization, search and dedupe
 src/lib/sources/*.ts   one adapter per archive -> Dataset[]
 src/lib/normalize.ts   modality/species vocabularies, prose mining, formatting
 src/lib/registry.ts    ingest, DOI dedupe across archives, disk cache
+src/lib/neuro.ts       neuroscience gate for the general-purpose archives
+src/lib/rig.ts         channel counts, amplifiers and montages mined from prose
 src/lib/query.ts       stemmed search, relevance ranking, facets, sorting
 src/lib/raster.ts      per-month deposit counts per archive
 src/app/page.tsx       the index; all browse state lives in the URL
@@ -77,6 +79,22 @@ beats a title hit, which beats a word buried in an abstract.
 
 When an archive is unreachable the ingest keeps the others and records the failure, which the
 footer reports rather than silently showing a short index.
+
+### Recording rig
+
+No archive exposes channel counts structurally — DANDI's `assetsSummary` stops at `ElectrodeGroup`,
+OpenNeuro's GraphQL has no equivalent field. The counts only exist in prose ("64-channel EEG",
+"10-20 system"), so they are mined from titles and abstracts, and only for modalities where a
+channel count means anything. Coverage is partial by nature: ~214 of 10,248 records carry a count.
+The facet says so rather than implying every dataset was checked.
+
+### Ingest is additive
+
+An ingest may only add or refresh, never delete. Two incidents forced this: a Dryad timeout took the
+index from 10,248 datasets to 8,490, and Figshare returned 331 records one run and 94 the next from
+an unchanged query — topic sweeps are non-deterministic samples. Every source is now unioned with
+what it contributed last time, fresh records winning on collision, and a source that fails outright
+keeps its previous records and is reported as stale in the footer.
 
 ### Page weight
 

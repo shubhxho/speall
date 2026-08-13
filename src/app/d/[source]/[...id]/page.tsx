@@ -87,6 +87,20 @@ export default async function DatasetPage({ params }: PageProps<"/d/[source]/[..
           {dataset.species.length > 0 && (
             <Field label="Species">{dataset.species.join(", ")}</Field>
           )}
+          {(dataset.channels || dataset.system || dataset.montage) && (
+            <Field label="Recording rig">
+              {[
+                dataset.channels ? `${dataset.channels} channels` : null,
+                dataset.system,
+                dataset.montage ? `${dataset.montage} montage` : null,
+              ]
+                .filter(Boolean)
+                .join(" · ")}
+              <span className="mt-1 block text-[0.8125rem] text-ink-faint">
+                Read from this dataset&apos;s own description, not a structured field.
+              </span>
+            </Field>
+          )}
           {dataset.tasks.length > 0 && <Field label="Tasks">{dataset.tasks.join(" · ")}</Field>}
           {dataset.license && <Field label="License">{dataset.license}</Field>}
           {dataset.doi && (

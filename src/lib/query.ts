@@ -1,4 +1,5 @@
 import type { Dataset, SourceId } from "@/lib/types";
+import { channelBucket } from "@/lib/rig";
 
 export type SortKey = "relevance" | "recent" | "oldest" | "largest" | "subjects" | "name";
 export type ViewMode = "rows" | "cards";
@@ -8,6 +9,9 @@ export interface Query {
   sources: SourceId[];
   modalities: string[];
   species: string[];
+  /** Channel-count buckets, e.g. "33-64". */
+  channels: string[];
+  systems: string[];
   from?: number;
   to?: number;
   sort: SortKey;
@@ -18,6 +22,8 @@ export interface Facets {
   sources: { key: string; count: number }[];
   modalities: { key: string; count: number }[];
   species: { key: string; count: number }[];
+  channels: { key: string; count: number }[];
+  systems: { key: string; count: number }[];
 }
 
 export const EMPTY_QUERY: Query = {
@@ -25,6 +31,8 @@ export const EMPTY_QUERY: Query = {
   sources: [],
   modalities: [],
   species: [],
+  channels: [],
+  systems: [],
   sort: "recent",
   view: "rows",
 };
@@ -172,14 +180,39 @@ export function applyQuery(datasets: Dataset[], query: Query) {
     !query.modalities.length || query.modalities.some((m) => d.modalities.includes(m));
   const bySpecies = (d: Dataset) =>
     !query.species.length || query.species.some((s) => d.species.includes(s));
+  const byChannels = (d: Dataset) => {
+    if (!query.channels.length) return true;
+    const bucket = channelBucket(d.channels);
+    return bucket !== undefined && query.channels.includes(bucket);
+  };
+  const bySystem = (d: Dataset) =>
+    !query.systems.length || (d.system !== undefined && query.systems.includes(d.system));
+
+  // Each facet ignores its own dimension so a selection never hides its siblings.
+  const others = (except: string) =>
+    textual.filter(
+      (d) =>
+        (except === "source" || bySource(d)) &&
+        (except === "modality" || byModality(d)) &&
+        (except === "species" || bySpecies(d)) &&
+        (except === "channels" || byChannels(d)) &&
+        (except === "system" || bySystem(d)),
+    );
 
   const facets: Facets = {
-    sources: tally(textual.filter((d) => byModality(d) && bySpecies(d)), (d) => [d.source]),
-    modalities: tally(textual.filter((d) => bySource(d) && bySpecies(d)), (d) => d.modalities),
-    species: tally(textual.filter((d) => bySource(d) && byModality(d)), (d) => d.species),
+    sources: tally(others("source"), (d) => [d.source]),
+    modalities: tally(others("modality"), (d) => d.modalities),
+    species: tally(others("species"), (d) => d.species),
+    channels: tally(others("channels"), (d) => {
+      const bucket = channelBucket(d.channels);
+      return bucket ? [bucket] : [];
+    }),
+    systems: tally(others("system"), (d) => (d.system ? [d.system] : [])),
   };
 
-  const results = textual.filter((d) => bySource(d) && byModality(d) && bySpecies(d));
+  const results = textual.filter(
+    (d) => bySource(d) && byModality(d) && bySpecies(d) && byChannels(d) && bySystem(d),
+  );
   return { results: sortDatasets(results, query.sort, query.q), facets };
 }
 
@@ -231,6 +264,8 @@ export function parseQuery(params: URLSearchParams): Query {
     sources: list("source") as SourceId[],
     modalities: list("modality"),
     species: list("species"),
+    channels: list("channels"),
+    systems: list("system"),
     from: num("from"),
     to: num("to"),
     // A search with no explicit sort should lead with the best match, not the

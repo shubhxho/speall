@@ -1,4 +1,5 @@
 import { MODALITY_LABELS, SOURCES, type SourceId } from "@/lib/types";
+import { channelBucketLabel } from "@/lib/rig";
 
 export interface Chip {
   key: string;
@@ -11,6 +12,8 @@ export function buildChips(active: {
   sources: string[];
   modalities: string[];
   species: string[];
+  channels: string[];
+  systems: string[];
 }): Chip[] {
   return [
     ...active.sources.map((value) => ({
@@ -24,5 +27,11 @@ export function buildChips(active: {
       label: MODALITY_LABELS[value] ?? value,
     })),
     ...active.species.map((value) => ({ key: "species", value, label: value })),
+    ...active.channels.map((value) => ({
+      key: "channels",
+      value,
+      label: `${channelBucketLabel(value)} ch`,
+    })),
+    ...active.systems.map((value) => ({ key: "system", value, label: value })),
   ];
 }

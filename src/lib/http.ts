@@ -14,6 +14,7 @@ export async function fetchWithRetry(
   url: string,
   init: RequestInit = {},
   attempts = 3,
+  timeoutMs = 90_000,
 ): Promise<Response> {
   let lastError: unknown;
 
@@ -21,7 +22,7 @@ export async function fetchWithRetry(
     if (attempt > 0) await delay(600 * 2 ** (attempt - 1));
     try {
       const res = await fetch(url, {
-        signal: AbortSignal.timeout(45_000),
+        signal: AbortSignal.timeout(timeoutMs),
         ...init,
         headers: { "User-Agent": USER_AGENT, ...init.headers },
       });

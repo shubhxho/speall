@@ -91,6 +91,10 @@ export interface Dataset {
   doi?: string;
   version?: string;
   url: string;
+  /** Recording-rig details mined from prose; absent when the text says nothing. */
+  channels?: number;
+  system?: string;
+  montage?: string;
 }
 
 export const MODALITY_LABELS: Record<string, string> = {
@@ -136,5 +140,12 @@ export interface Registry {
   fetchedAt: string;
   datasets: Dataset[];
   /** Per-source ingest outcome, surfaced in the UI so gaps are never silent. */
-  report: { source: SourceId; count: number; ok: boolean; note?: string }[];
+  report: {
+    source: SourceId;
+    count: number;
+    ok: boolean;
+    /** Records carried over from a previous ingest because this source failed. */
+    stale?: boolean;
+    note?: string;
+  }[];
 }

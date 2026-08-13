@@ -5,6 +5,7 @@ import { useState } from "react";
 import type { Facets } from "@/lib/query";
 import { MODALITY_LABELS, MODALITY_ORDER, SOURCES, type SourceId } from "@/lib/types";
 import { formatCount } from "@/lib/normalize";
+import { CHANNEL_BUCKETS } from "@/lib/rig";
 import { useQueryNav } from "@/components/use-query-nav";
 
 /** Long facet lists collapse to this until the reader asks for more. */
@@ -12,7 +13,13 @@ const COLLAPSED_ROWS = 8;
 
 interface Props {
   facets: Facets;
-  active: { sources: string[]; modalities: string[]; species: string[] };
+  active: {
+    sources: string[];
+    modalities: string[];
+    species: string[];
+    channels: string[];
+    systems: string[];
+  };
 }
 
 export function FilterRail({ facets, active }: Props) {
@@ -62,6 +69,46 @@ export function FilterRail({ facets, active }: Props) {
         ))}
       </Group>
 
+      {facets.channels.length > 0 && (
+        <Group
+          title="Channels"
+          selected={active.channels.length}
+          onClear={() => commit({ channels: null })}
+          note="Read from dataset text; only some say."
+        >
+          {CHANNEL_BUCKETS.filter((bucket) =>
+            facets.channels.some((f) => f.key === bucket.key),
+          ).map((bucket) => (
+            <Row
+              key={bucket.key}
+              label={bucket.label}
+              count={facets.channels.find((f) => f.key === bucket.key)?.count ?? 0}
+              checked={active.channels.includes(bucket.key)}
+              onToggle={() => toggleInList("channels", bucket.key)}
+            />
+          ))}
+        </Group>
+      )}
+
+      {facets.systems.length > 0 && (
+        <Group
+          title="Rig"
+          selected={active.systems.length}
+          onClear={() => commit({ system: null })}
+          note="Amplifier, cap or probe named in the text."
+        >
+          {facets.systems.map(({ key, count }) => (
+            <Row
+              key={key}
+              label={key}
+              count={count}
+              checked={active.systems.includes(key)}
+              onToggle={() => toggleInList("system", key)}
+            />
+          ))}
+        </Group>
+      )}
+
       {facets.species.length > 0 && (
         <Group
           title="Species"
@@ -87,10 +134,12 @@ interface GroupProps {
   title: string;
   selected: number;
   onClear: () => void;
+  /** Shown when a facet's coverage needs explaining rather than assuming. */
+  note?: string;
   children: React.ReactNode;
 }
 
-function Group({ title, selected, onClear, children }: GroupProps) {
+function Group({ title, selected, onClear, note, children }: GroupProps) {
   const [open, setOpen] = useState(true);
   const [expanded, setExpanded] = useState(false);
 
@@ -129,6 +178,7 @@ function Group({ title, selected, onClear, children }: GroupProps) {
 
       {open && (
         <>
+          {note && <p className="mb-2 px-2 text-[11px] leading-snug text-ink-faint">{note}</p>}
           <ul className="flex flex-col gap-px">{visible}</ul>
           {overflow > 0 && (
             <button

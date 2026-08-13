@@ -14,11 +14,12 @@ async function main() {
 
   for (const row of registry.report) {
     const label = SOURCES[row.source].label.padEnd(12);
-    console.log(
-      row.ok
-        ? `  ok   ${label} ${row.count.toLocaleString()} datasets`
-        : `  FAIL ${label} ${row.note}`,
-    );
+    if (row.ok)
+      console.log(
+        `  ok    ${label} ${row.count.toLocaleString()} datasets${row.note ? ` (${row.note})` : ""}`,
+      );
+    else if (row.stale) console.log(`  STALE ${label} ${row.note}`);
+    else console.log(`  FAIL  ${label} ${row.note}`);
   }
 
   console.log(

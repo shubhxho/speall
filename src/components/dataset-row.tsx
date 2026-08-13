@@ -65,6 +65,7 @@ export function DatasetRow({ dataset }: { dataset: Dataset }) {
             </Stat>
           )}
           {dataset.species.length > 0 && <Stat label="Species">{dataset.species.join(", ")}</Stat>}
+          {!!dataset.channels && <Stat label="Channels">{formatCount(dataset.channels)}</Stat>}
           {!!dataset.subjects && <Stat label="Subjects">{formatCount(dataset.subjects)}</Stat>}
           {!!dataset.files && <Stat label="Files">{formatCount(dataset.files)}</Stat>}
           {!!dataset.sizeBytes && <Stat label="Size">{formatBytes(dataset.sizeBytes)}</Stat>}

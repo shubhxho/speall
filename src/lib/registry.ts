@@ -9,6 +9,7 @@ import { fetchGin } from "@/lib/sources/gin";
 import { fetchDryad } from "@/lib/sources/dryad";
 import { fetchFigshare } from "@/lib/sources/figshare";
 import { fetchZenodo } from "@/lib/sources/zenodo";
+import { extractRig } from "@/lib/rig";
 
 const CACHE_FILE = path.join(process.cwd(), "data", "registry.json");
 
@@ -25,30 +26,77 @@ const LOADERS: { source: SourceId; load: () => Promise<Dataset[]> }[] = [
   { source: "zenodo", load: () => fetchZenodo() },
 ];
 
-export async function ingest(): Promise<Registry> {
-  const settled = await Promise.allSettled(LOADERS.map(({ load }) => load()));
-
+/**
+ * An ingest may only add or refresh, never quietly delete.
+ *
+ * Two things forced this. A Dryad timeout once took the index from 10,248
+ * datasets to 8,490, because a failed source contributed nothing. And the
+ * topic-swept archives are non-deterministic samples — Figshare returned 331
+ * records one run and 94 the next, from an unchanged query — so even a
+ * successful run can come back smaller.
+ *
+ * Every source is therefore unioned with what it contributed last time, with
+ * fresh records winning on collision. The index accumulates instead of
+ * fluctuating, and a bad network day cannot shrink it.
+ */
+export function mergeOutcomes(
+  outcomes: { source: SourceId; datasets: Dataset[] | null; error?: string }[],
+  previous: Registry | null,
+): { datasets: Dataset[]; report: Registry["report"] } {
   const report: Registry["report"] = [];
   const datasets: Dataset[] = [];
 
-  settled.forEach((result, i) => {
-    const { source } = LOADERS[i];
-    if (result.status === "fulfilled") {
-      datasets.push(...result.value);
-      report.push({ source, count: result.value.length, ok: true });
-    } else {
+  for (const outcome of outcomes) {
+    const retained = previous?.datasets.filter((d) => d.source === outcome.source) ?? [];
+
+    if (!outcome.datasets) {
+      datasets.push(...retained);
       report.push({
-        source,
-        count: 0,
+        source: outcome.source,
+        count: retained.length,
         ok: false,
-        note: String(result.reason?.message ?? result.reason),
+        stale: retained.length > 0,
+        note: retained.length
+          ? `${outcome.error} — kept ${retained.length} records from ${previous!.fetchedAt.slice(0, 10)}`
+          : outcome.error,
       });
+      continue;
     }
-  });
+
+    const merged = new Map(retained.map((d) => [d.uid, d]));
+    for (const dataset of outcome.datasets) merged.set(dataset.uid, dataset);
+    const carried = merged.size - outcome.datasets.length;
+
+    datasets.push(...merged.values());
+    report.push({
+      source: outcome.source,
+      count: merged.size,
+      ok: true,
+      note: carried > 0 ? `${outcome.datasets.length} fetched, ${carried} carried over` : undefined,
+    });
+  }
+
+  return { datasets, report };
+}
+
+export async function ingest(): Promise<Registry> {
+  const previous = await readCache();
+  const settled = await Promise.allSettled(LOADERS.map(({ load }) => load()));
+
+  const { datasets, report } = mergeOutcomes(
+    settled.map((result, i) => ({
+      source: LOADERS[i].source,
+      datasets: result.status === "fulfilled" ? result.value : null,
+      error: result.status === "rejected" ? String(result.reason?.message ?? result.reason) : undefined,
+    })),
+    previous,
+  );
 
   const registry: Registry = {
     fetchedAt: new Date().toISOString(),
-    datasets: dedupe(datasets).sort((a, b) => b.created.localeCompare(a.created)),
+    datasets: dedupe(datasets)
+      .map(withRig)
+      .sort((a, b) => b.created.localeCompare(a.created)),
     report,
   };
 
@@ -99,6 +147,15 @@ export function dedupe(datasets: Dataset[]): Dataset[] {
  * it only runs when there is nothing cached at all — refreshing is deliberate,
  * via `npm run ingest` or POST /api/refresh, never a blocked page request.
  */
+/** Rig details live in prose, so they are mined once at ingest for every source. */
+function withRig(dataset: Dataset): Dataset {
+  const rig = extractRig(
+    [dataset.name, dataset.description, dataset.tasks.join(" ")].filter(Boolean).join(" "),
+    dataset.modalities,
+  );
+  return rig.channels || rig.system || rig.montage ? { ...dataset, ...rig } : dataset;
+}
+
 export async function getRegistry(): Promise<Registry> {
   if (memory) return memory;
   if (inFlight) return inFlight;
