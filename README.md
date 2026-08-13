@@ -77,3 +77,9 @@ beats a title hit, which beats a word buried in an abstract.
 
 When an archive is unreachable the ingest keeps the others and records the failure, which the
 footer reports rather than silently showing a short index.
+
+### Page weight
+
+The raster covers ~200 months across seven lanes. Drawn as one rect per month per lane that is
+~1,400 SVG nodes in the server-rendered HTML; each lane is emitted as a single `<path>` instead,
+which is 14 nodes and roughly halves the page. Measured: 391 KB to 193 KB, server render 55 ms.

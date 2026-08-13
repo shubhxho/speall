@@ -39,12 +39,43 @@ export function RasterBand({ raster, from, to }: Props) {
     return map;
   }, [months]);
 
-  // Each lane is scaled to its own busiest month, the way a multi-channel trace
-  // is: NeuroVault's volume would otherwise flatten every other archive.
-  const lanePeaks = useMemo(
-    () => lanes.map((lane) => Math.max(1, ...lane.total)),
-    [lanes],
-  );
+  /**
+   * Each lane becomes two path strings rather than two rects per month. At this
+   * many columns that is ~1,400 SVG nodes collapsed into 14, which is most of
+   * the difference in the page's HTML size.
+   *
+   * Lanes are scaled to their own busiest month, the way a multi-channel trace
+   * is: NeuroVault's volume would otherwise flatten every other archive.
+   */
+  const lanePaths = useMemo(() => {
+    const columnWidth = 100 / Math.max(columns, 1);
+    const w = columnWidth.toFixed(4);
+
+    return lanes.map((lane, laneIndex) => {
+      const top = laneIndex * (LANE_HEIGHT + LANE_GAP);
+      const peak = Math.max(1, ...lane.total);
+      const totalParts: string[] = [];
+      const hitParts: string[] = [];
+
+      lane.total.forEach((count, column) => {
+        if (!count) return;
+        const x = (column * columnWidth).toFixed(4);
+        const barHeight = Math.max(1.5, Math.sqrt(count / peak) * LANE_HEIGHT);
+        totalParts.push(
+          `M${x} ${(top + LANE_HEIGHT - barHeight).toFixed(3)}h${w}v${barHeight.toFixed(3)}h-${w}z`,
+        );
+
+        const hits = lane.hit[column];
+        if (!hits) return;
+        const hitHeight = Math.max(1.5, (hits / count) * barHeight);
+        hitParts.push(
+          `M${x} ${(top + LANE_HEIGHT - hitHeight).toFixed(3)}h${w}v${hitHeight.toFixed(3)}h-${w}z`,
+        );
+      });
+
+      return { total: totalParts.join(""), hit: hitParts.join("") };
+    });
+  }, [lanes, columns]);
 
   const positionToYear = useCallback(
     (clientX: number) => {
@@ -92,7 +123,6 @@ export function RasterBand({ raster, from, to }: Props) {
       })()
     : null;
 
-  const columnWidth = 100 / Math.max(columns, 1);
   const labelYears = years.filter((year) => year % 5 === 0);
 
   if (!columns) return null;
@@ -137,7 +167,7 @@ export function RasterBand({ raster, from, to }: Props) {
           {lanes.map((lane, laneIndex) => {
             const top = laneIndex * (LANE_HEIGHT + LANE_GAP);
             const color = `var(${SOURCES[lane.source].token})`;
-            const peak = lanePeaks[laneIndex];
+            const { total, hit } = lanePaths[laneIndex];
             return (
               <g key={lane.source}>
                 <line
@@ -149,34 +179,8 @@ export function RasterBand({ raster, from, to }: Props) {
                   strokeWidth={0.06}
                   vectorEffect="non-scaling-stroke"
                 />
-                {lane.total.map((total, column) => {
-                  if (!total) return null;
-                  const barHeight = Math.max(1.5, Math.sqrt(total / peak) * LANE_HEIGHT);
-                  const hit = lane.hit[column];
-                  const hitHeight = hit ? Math.max(1.5, (hit / total) * barHeight) : 0;
-                  const x = column * columnWidth;
-                  return (
-                    <g key={column}>
-                      <rect
-                        x={x}
-                        y={top + LANE_HEIGHT - barHeight}
-                        width={columnWidth}
-                        height={barHeight}
-                        fill={color}
-                        opacity={0.24}
-                      />
-                      {hitHeight > 0 && (
-                        <rect
-                          x={x}
-                          y={top + LANE_HEIGHT - hitHeight}
-                          width={columnWidth}
-                          height={hitHeight}
-                          fill={color}
-                        />
-                      )}
-                    </g>
-                  );
-                })}
+                {total && <path d={total} fill={color} opacity={0.24} />}
+                {hit && <path d={hit} fill={color} />}
               </g>
             );
           })}
