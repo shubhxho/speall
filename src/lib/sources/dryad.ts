@@ -1,6 +1,7 @@
 import type { Dataset } from "@/lib/types";
 import { deriveModalities, normalizeSpecies, plainText } from "@/lib/normalize";
 import { fetchWithRetry } from "@/lib/http";
+import { isNeuroscience, neuroText } from "@/lib/neuro";
 
 const BASE = "https://datadryad.org/api/v2/search";
 const PAGE = 100;
@@ -43,7 +44,7 @@ interface Record {
   visibility?: string;
 }
 
-export async function fetchDryad(pagesPerTerm = 5): Promise<Dataset[]> {
+export async function fetchDryad(pagesPerTerm = 8): Promise<Dataset[]> {
   const byId = new Map<string, Dataset>();
 
   for (const term of TERMS) {
@@ -63,6 +64,9 @@ export async function fetchDryad(pagesPerTerm = 5): Promise<Dataset[]> {
       if (!records.length) break;
       for (const record of records) {
         if (record.visibility && record.visibility !== "public") continue;
+        // A topic sweep of a general archive drags in near misses.
+        const evidence = neuroText([record.title, ...(record.keywords ?? []), record.abstract]);
+        if (!isNeuroscience(evidence)) continue;
         const dataset = toDataset(record);
         byId.set(dataset.uid, dataset);
       }

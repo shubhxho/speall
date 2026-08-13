@@ -2,6 +2,7 @@ import type { Dataset } from "@/lib/types";
 import { deriveModalities, normalizeSpecies, plainText } from "@/lib/normalize";
 import { delay, fetchWithRetry } from "@/lib/http";
 import { mapWithConcurrency } from "@/lib/concurrency";
+import { isNeuroscience, neuroText } from "@/lib/neuro";
 
 const SEARCH = "https://api.figshare.com/v2/articles/search";
 const ARTICLE = "https://api.figshare.com/v2/articles";
@@ -49,7 +50,7 @@ interface Article extends Stub {
 }
 
 /** Search returns bare stubs, so each hit needs a second call for its metadata. */
-export async function fetchFigshare(pagesPerTerm = 2): Promise<Dataset[]> {
+export async function fetchFigshare(pagesPerTerm = 3): Promise<Dataset[]> {
   const stubs = new Map<number, Stub>();
 
   for (const term of TERMS) {
@@ -98,6 +99,7 @@ function toDataset(a: Article): Dataset | null {
 
   const terms = [...(a.tags ?? []), ...(a.categories ?? []).map((c) => c.title ?? "")];
   const text = [a.title, ...terms, plainText(a.description, 400) ?? ""].join(" ");
+  if (!isNeuroscience(neuroText([text]))) return null;
 
   return {
     uid: `figshare:${a.id}`,

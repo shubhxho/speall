@@ -1,6 +1,7 @@
 import type { Dataset } from "@/lib/types";
 import { deriveModalities, normalizeSpecies, plainText } from "@/lib/normalize";
 import { delay, fetchWithRetry } from "@/lib/http";
+import { isNeuroscience, neuroText } from "@/lib/neuro";
 
 const BASE = "https://zenodo.org/api/records";
 
@@ -42,7 +43,7 @@ interface Record {
 /** Anonymous Zenodo requests are capped at 25 records per page. */
 const PAGE = 25;
 
-export async function fetchZenodo(pages = 100): Promise<Dataset[]> {
+export async function fetchZenodo(pages = 160): Promise<Dataset[]> {
   const out: Dataset[] = [];
 
   for (let page = 1; page <= pages; page++) {
@@ -62,18 +63,22 @@ export async function fetchZenodo(pages = 100): Promise<Dataset[]> {
     const json = await res.json();
     const hits: Record[] = json.hits?.hits ?? [];
     if (!hits.length) break;
-    out.push(...hits.map(toDataset));
+    for (const hit of hits) {
+      const dataset = toDataset(hit);
+      if (dataset) out.push(dataset);
+    }
   }
 
   return out;
 }
 
-function toDataset(r: Record): Dataset {
+function toDataset(r: Record): Dataset | null {
   const m = r.metadata;
   const terms = [...(m.keywords ?? []), ...(m.subjects ?? []).map((s) => s.subject ?? "")];
   const haystack = [m.title, ...terms].join(" ");
   const license = typeof m.license === "string" ? m.license : m.license?.id;
   const size = r.files?.reduce((sum, f) => sum + (f.size ?? 0), 0);
+  if (!isNeuroscience(neuroText([haystack, plainText(m.description, 400)]))) return null;
 
   return {
     uid: `zenodo:${r.id}`,
