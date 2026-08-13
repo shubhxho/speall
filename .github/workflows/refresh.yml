@@ -32,7 +32,7 @@ jobs:
         run: npm run ingest | tee ingest.log
 
       - name: Verify the new index before committing
-        run: npm test && npx tsc --noEmit && npm run build
+        run: npm test && npx next typegen && npx tsc --noEmit && npm run build
 
       - name: Commit if the index changed
         run: |
