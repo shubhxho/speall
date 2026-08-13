@@ -1,0 +1,48 @@
+name: Refresh index
+
+# The archives publish continuously and the committed index is a snapshot, so
+# it goes stale on its own. Ingest is additive — a failed or thin source keeps
+# its previous records — which is what makes this safe to run unattended.
+on:
+  schedule:
+    - cron: "17 4 * * 1" # Mondays, 04:17 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: refresh-index
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    # Seven archives, several thousand paced requests.
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+
+      - name: Ingest
+        run: npm run ingest | tee ingest.log
+
+      - name: Verify the new index before committing
+        run: npm test && npx tsc --noEmit && npm run build
+
+      - name: Commit if the index changed
+        run: |
+          if git diff --quiet -- data/registry.json; then
+            echo "Index unchanged, nothing to commit."
+            exit 0
+          fi
+          total=$(node -p "require('./data/registry.json').datasets.length")
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/registry.json
+          git commit -m "chore: refresh index (${total} datasets)" -m "$(grep -E '^  (ok|STALE|FAIL)' ingest.log || true)"
+          git push

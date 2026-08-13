@@ -88,6 +88,16 @@ OpenNeuro's GraphQL has no equivalent field. The counts only exist in prose ("64
 channel count means anything. Coverage is partial by nature: ~214 of 10,248 records carry a count.
 The facet says so rather than implying every dataset was checked.
 
+### It refreshes itself
+
+`.github/workflows/refresh.yml` re-ingests every Monday, verifies the result
+(tests, typecheck, build) *before* committing, and only commits when the index
+actually changed. Vercel is connected to the repo, so that commit deploys
+itself. `workflow_dispatch` runs it on demand.
+
+The additive ingest below is what makes running this unattended safe: a bad
+network day cannot publish a smaller index.
+
 ### Ingest is additive
 
 An ingest may only add or refresh, never delete. Two incidents forced this: a Dryad timeout took the
