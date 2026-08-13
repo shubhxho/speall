@@ -1,6 +1,7 @@
 import type { Dataset, SourceId } from "@/lib/types";
 
 export type SortKey = "recent" | "oldest" | "largest" | "subjects" | "name";
+export type ViewMode = "rows" | "cards";
 
 export interface Query {
   q: string;
@@ -10,6 +11,7 @@ export interface Query {
   from?: number;
   to?: number;
   sort: SortKey;
+  view: ViewMode;
 }
 
 export interface Facets {
@@ -24,6 +26,7 @@ export const EMPTY_QUERY: Query = {
   modalities: [],
   species: [],
   sort: "recent",
+  view: "rows",
 };
 
 function haystack(d: Dataset): string {
@@ -113,5 +116,6 @@ export function parseQuery(params: URLSearchParams): Query {
     from: num("from"),
     to: num("to"),
     sort: (params.get("sort") as SortKey) || "recent",
+    view: params.get("view") === "cards" ? "cards" : "rows",
   };
 }

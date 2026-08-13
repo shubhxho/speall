@@ -1,9 +1,14 @@
 "use client";
 
+import { useState } from "react";
+
 import type { Facets } from "@/lib/query";
 import { MODALITY_LABELS, MODALITY_ORDER, SOURCES, type SourceId } from "@/lib/types";
 import { formatCount } from "@/lib/normalize";
 import { useQueryNav } from "@/components/use-query-nav";
+
+/** Long facet lists collapse to this until the reader asks for more. */
+const COLLAPSED_ROWS = 8;
 
 interface Props {
   facets: Facets;
@@ -11,15 +16,19 @@ interface Props {
 }
 
 export function FilterRail({ facets, active }: Props) {
-  const { toggleInList } = useQueryNav();
+  const { toggleInList, commit } = useQueryNav();
 
   const modalities = [...facets.modalities].sort(
     (a, b) => MODALITY_ORDER.indexOf(a.key) - MODALITY_ORDER.indexOf(b.key),
   );
 
   return (
-    <div className="flex flex-col gap-8">
-      <Group title="Archive">
+    <div className="flex flex-col gap-6">
+      <Group
+        title="Archive"
+        selected={active.sources.length}
+        onClear={() => commit({ source: null })}
+      >
         {facets.sources.map(({ key, count }) => {
           const meta = SOURCES[key as SourceId];
           if (!meta) return null;
@@ -37,7 +46,11 @@ export function FilterRail({ facets, active }: Props) {
         })}
       </Group>
 
-      <Group title="Modality">
+      <Group
+        title="Modality"
+        selected={active.modalities.length}
+        onClear={() => commit({ modality: null })}
+      >
         {modalities.map(({ key, count }) => (
           <Row
             key={key}
@@ -50,7 +63,11 @@ export function FilterRail({ facets, active }: Props) {
       </Group>
 
       {facets.species.length > 0 && (
-        <Group title="Species">
+        <Group
+          title="Species"
+          selected={active.species.length}
+          onClear={() => commit({ species: null })}
+        >
           {facets.species.map(({ key, count }) => (
             <Row
               key={key}
@@ -66,11 +83,64 @@ export function FilterRail({ facets, active }: Props) {
   );
 }
 
-function Group({ title, children }: { title: string; children: React.ReactNode }) {
+interface GroupProps {
+  title: string;
+  selected: number;
+  onClear: () => void;
+  children: React.ReactNode;
+}
+
+function Group({ title, selected, onClear, children }: GroupProps) {
+  const [open, setOpen] = useState(true);
+  const [expanded, setExpanded] = useState(false);
+
+  const rows = Array.isArray(children) ? children.flat().filter(Boolean) : [children];
+  const overflow = rows.length - COLLAPSED_ROWS;
+  const visible = expanded ? rows : rows.slice(0, COLLAPSED_ROWS);
+
   return (
-    <section>
-      <h2 className="readout mb-3 text-ink-faint">{title}</h2>
-      <ul className="flex flex-col gap-px">{children}</ul>
+    <section className="border-b border-hairline pb-5 last:border-b-0 last:pb-0">
+      <div className="mb-2 flex items-center gap-2">
+        <button
+          type="button"
+          onClick={() => setOpen(!open)}
+          aria-expanded={open}
+          className="readout flex flex-1 items-center gap-1.5 text-ink-faint hover:text-ink"
+        >
+          <span
+            className={`inline-block transition-transform ${open ? "rotate-90" : ""}`}
+            aria-hidden
+          >
+            ›
+          </span>
+          {title}
+          {selected > 0 && <span className="text-ink">({selected})</span>}
+        </button>
+        {selected > 0 && (
+          <button
+            type="button"
+            onClick={onClear}
+            className="readout text-ink-muted underline decoration-hairline-strong underline-offset-4 hover:text-ink"
+          >
+            Clear
+          </button>
+        )}
+      </div>
+
+      {open && (
+        <>
+          <ul className="flex flex-col gap-px">{visible}</ul>
+          {overflow > 0 && (
+            <button
+              type="button"
+              onClick={() => setExpanded(!expanded)}
+              className="readout mt-2 px-2 text-ink-muted underline decoration-hairline-strong underline-offset-4 hover:text-ink"
+            >
+              {expanded ? "Show less" : `Show ${overflow} more`}
+            </button>
+          )}
+        </>
+      )}
     </section>
   );
 }
@@ -104,9 +174,7 @@ function Row({ label, count, checked, onToggle, swatch, hint }: RowProps) {
           />
         )}
         <span className="truncate">{label}</span>
-        <span
-          className={`tick ml-auto text-[11px] ${checked ? "opacity-70" : "text-ink-faint"}`}
-        >
+        <span className={`tick ml-auto text-[11px] ${checked ? "opacity-70" : "text-ink-faint"}`}>
           {formatCount(count)}
         </span>
       </button>

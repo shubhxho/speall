@@ -6,6 +6,7 @@ import { buildRaster } from "@/lib/raster";
 import { formatCount } from "@/lib/normalize";
 import { SOURCES, type SourceId } from "@/lib/types";
 import { DatasetRow } from "@/components/dataset-row";
+import { DatasetTable } from "@/components/dataset-table";
 import { FilterRail } from "@/components/filter-rail";
 import { Pagination } from "@/components/pagination";
 import { RasterBand } from "@/components/raster-band";
@@ -53,6 +54,9 @@ export default async function Home({ searchParams }: PageProps<"/">) {
   };
   const failed = registry.report.filter((row) => !row.ok);
   const archiveLabels = Object.values(SOURCES).map((meta) => meta.label);
+
+  const range = query.from || query.to ? ` · ${query.from ?? "…"}–${query.to ?? "…"}` : "";
+  const summary = `${formatCount(results.length)} datasets${range}`;
 
   return (
     <div className="mx-auto flex w-full max-w-[1180px] flex-col px-4 sm:px-6 lg:px-8">
@@ -109,13 +113,14 @@ export default async function Home({ searchParams }: PageProps<"/">) {
 
         <main className="min-w-0">
           <Suspense fallback={null}>
-            <Toolbar q={query.q} sort={query.sort} chips={buildChips(active)} />
+            <Toolbar
+              q={query.q}
+              sort={query.sort}
+              view={query.view}
+              chips={buildChips(active)}
+              summary={summary}
+            />
           </Suspense>
-
-          <p className="readout mt-4 text-ink-faint" aria-live="polite">
-            {formatCount(results.length)} datasets
-            {query.from || query.to ? ` · ${query.from ?? "…"}–${query.to ?? "…"}` : ""}
-          </p>
 
           {visible.length === 0 ? (
             <div className="mt-6 border border-dashed border-hairline-strong px-6 py-14 text-center">
@@ -125,12 +130,14 @@ export default async function Home({ searchParams }: PageProps<"/">) {
                 and archive IDs.
               </p>
             </div>
-          ) : (
+          ) : query.view === "cards" ? (
             <ul className="mt-4 flex flex-col gap-3">
               {visible.map((dataset) => (
                 <DatasetRow key={dataset.uid} dataset={dataset} />
               ))}
             </ul>
+          ) : (
+            <DatasetTable datasets={visible} />
           )}
 
           <Pagination page={page} pages={pages} params={params} />
