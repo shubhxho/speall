@@ -33,6 +33,10 @@ kept in the repo on purpose: serverless has nowhere to write one, and a live ing
 Regenerate it with `npm run ingest` and commit the result. A page request never triggers an ingest
 unless the file is missing entirely.
 
+```bash
+npm test   # 27 tests over normalization, search and dedupe
+```
+
 `POST /api/refresh` re-ingests at runtime. Set `REFRESH_TOKEN` to require
 `Authorization: Bearer <token>` on that route.
 
@@ -42,7 +46,7 @@ unless the file is missing entirely.
 src/lib/sources/*.ts   one adapter per archive -> Dataset[]
 src/lib/normalize.ts   modality/species vocabularies, prose mining, formatting
 src/lib/registry.ts    ingest, DOI dedupe across archives, disk cache
-src/lib/query.ts       text search, facet filtering, facet counts, sorting
+src/lib/query.ts       stemmed search, relevance ranking, facets, sorting
 src/lib/raster.ts      per-month deposit counts per archive
 src/app/page.tsx       the index; all browse state lives in the URL
 src/app/d/[source]/[...id]/page.tsx   one dataset (ids can contain slashes)
@@ -50,6 +54,12 @@ src/app/d/[source]/[...id]/page.tsx   one dataset (ids can contain slashes)
 
 Filtering runs server-side against the in-memory registry, driven entirely by search params, so
 every view is a shareable link and the browser never downloads the full index.
+
+Search stems bare terms so "hippocampus" finds "hippocampal", matches them at word starts so
+"cortex" does not hit "escort", and keeps quoted spans verbatim. A short synonym table covers the
+Latin noun/adjective pairs suffix stripping cannot bridge — "cortical" stems to "cortic", which
+never meets "cortex". Results with a query rank by where the match landed: an exact archive ID
+beats a title hit, which beats a word buried in an abstract.
 
 ### Notes on the upstream APIs
 

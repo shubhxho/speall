@@ -61,7 +61,7 @@ export async function ingest(): Promise<Registry> {
  * The same deposit often lands in two archives. Primary archives win over
  * Zenodo mirrors, so preference follows LOADERS order.
  */
-function dedupe(datasets: Dataset[]): Dataset[] {
+export function dedupe(datasets: Dataset[]): Dataset[] {
   const rank = Object.fromEntries(LOADERS.map((l, i) => [l.source, i])) as Record<
     SourceId,
     number

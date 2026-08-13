@@ -6,6 +6,7 @@ import { SearchBar } from "@/components/search-bar";
 import { useQueryNav } from "@/components/use-query-nav";
 
 const SORTS: { key: SortKey; label: string }[] = [
+  { key: "relevance", label: "Best match" },
   { key: "recent", label: "Newest" },
   { key: "oldest", label: "Oldest" },
   { key: "largest", label: "Largest" },
@@ -59,10 +60,10 @@ export function Toolbar({ q, sort, view, chips, summary }: Props) {
           <span className="readout text-ink-faint">Sort</span>
           <select
             value={sort}
-            onChange={(e) => commit({ sort: e.target.value === "recent" ? null : e.target.value })}
+            onChange={(e) => commit({ sort: e.target.value })}
             className="border border-hairline bg-surface px-2 py-2 text-sm text-ink"
           >
-            {SORTS.map((option) => (
+            {SORTS.filter((option) => option.key !== "relevance" || q.trim()).map((option) => (
               <option key={option.key} value={option.key}>
                 {option.label}
               </option>
