@@ -39,3 +39,6 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# aggregated dataset index (regenerate with: npm run ingest)
+/data/registry.json

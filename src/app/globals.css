@@ -1,26 +1,146 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+/*
+  Speall — an index of open neuroscience archives.
+  Visual system: a recording rig. Cool instrument greys, one signal color per
+  archive, monospace for anything an instrument would print.
+*/
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+:root {
+  --bg: #e9edf0;
+  --grid: #dfe5ea;
+  --surface: #ffffff;
+  --surface-2: #f4f6f8;
+  --ink: #0f1922;
+  --ink-muted: #5c6c7a;
+  --ink-faint: #8a99a5;
+  --hairline: #d3dbe2;
+  --hairline-strong: #b9c4ce;
+  --focus: #0f1922;
+
+  --signal-openneuro: #2d6be4;
+  --signal-dandi: #d2691e;
+  --signal-neurovault: #7c4ddb;
+  --signal-zenodo: #00806f;
+
+  --shadow-card: 0 1px 2px rgb(15 25 34 / 0.06), 0 8px 24px -16px rgb(15 25 34 / 0.24);
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --bg: #0b1116;
+    --grid: #121a21;
+    --surface: #121c24;
+    --surface-2: #16222c;
+    --ink: #e4edf3;
+    --ink-muted: #8298a8;
+    --ink-faint: #62788a;
+    --hairline: #22323f;
+    --hairline-strong: #33475a;
+    --focus: #7fd4ff;
+
+    --signal-openneuro: #5b93ff;
+    --signal-dandi: #f0954a;
+    --signal-neurovault: #a684ff;
+    --signal-zenodo: #22c1a6;
+
+    --shadow-card: 0 1px 2px rgb(0 0 0 / 0.4), 0 8px 24px -16px rgb(0 0 0 / 0.8);
   }
 }
 
+:root[data-theme="light"] {
+  --bg: #e9edf0;
+  --grid: #dfe5ea;
+  --surface: #ffffff;
+  --surface-2: #f4f6f8;
+  --ink: #0f1922;
+  --ink-muted: #5c6c7a;
+  --ink-faint: #8a99a5;
+  --hairline: #d3dbe2;
+  --hairline-strong: #b9c4ce;
+  --focus: #0f1922;
+  --signal-openneuro: #2d6be4;
+  --signal-dandi: #d2691e;
+  --signal-neurovault: #7c4ddb;
+  --signal-zenodo: #00806f;
+  --shadow-card: 0 1px 2px rgb(15 25 34 / 0.06), 0 8px 24px -16px rgb(15 25 34 / 0.24);
+}
+
+:root[data-theme="dark"] {
+  --bg: #0b1116;
+  --grid: #121a21;
+  --surface: #121c24;
+  --surface-2: #16222c;
+  --ink: #e4edf3;
+  --ink-muted: #8298a8;
+  --ink-faint: #62788a;
+  --hairline: #22323f;
+  --hairline-strong: #33475a;
+  --focus: #7fd4ff;
+  --signal-openneuro: #5b93ff;
+  --signal-dandi: #f0954a;
+  --signal-neurovault: #a684ff;
+  --signal-zenodo: #22c1a6;
+  --shadow-card: 0 1px 2px rgb(0 0 0 / 0.4), 0 8px 24px -16px rgb(0 0 0 / 0.8);
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-grid: var(--grid);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-ink: var(--ink);
+  --color-ink-muted: var(--ink-muted);
+  --color-ink-faint: var(--ink-faint);
+  --color-hairline: var(--hairline);
+  --color-hairline-strong: var(--hairline-strong);
+
+  --font-display: var(--font-bricolage), ui-sans-serif, system-ui, sans-serif;
+  --font-sans: var(--font-plex-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-plex-mono), ui-monospace, monospace;
+}
+
+html {
+  color-scheme: light dark;
+}
+
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background-color: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  /* Faint graph-paper grid: the page reads as instrument output, not a document. */
+  background-image:
+    linear-gradient(to right, var(--grid) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--grid) 1px, transparent 1px);
+  background-size: 32px 32px;
+}
+
+:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+/* Meta text an instrument would print: IDs, counts, units, labels. */
+.readout {
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-variant-numeric: tabular-nums;
+}
+
+.tick {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }
