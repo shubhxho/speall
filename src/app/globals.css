@@ -21,7 +21,10 @@
   --signal-openneuro: #2d6be4;
   --signal-dandi: #d2691e;
   --signal-neurovault: #7c4ddb;
-  --signal-zenodo: #00806f;
+  --signal-gin: #c02a4d;
+  --signal-dryad: #2f7d32;
+  --signal-figshare: #946b00;
+  --signal-zenodo: #0e7490;
 
   --shadow-card: 0 1px 2px rgb(15 25 34 / 0.06), 0 8px 24px -16px rgb(15 25 34 / 0.24);
 }
@@ -42,7 +45,10 @@
     --signal-openneuro: #5b93ff;
     --signal-dandi: #f0954a;
     --signal-neurovault: #a684ff;
-    --signal-zenodo: #22c1a6;
+    --signal-gin: #ff7a95;
+    --signal-dryad: #4caf6a;
+    --signal-figshare: #cfa227;
+    --signal-zenodo: #35bde0;
 
     --shadow-card: 0 1px 2px rgb(0 0 0 / 0.4), 0 8px 24px -16px rgb(0 0 0 / 0.8);
   }
@@ -62,7 +68,10 @@
   --signal-openneuro: #2d6be4;
   --signal-dandi: #d2691e;
   --signal-neurovault: #7c4ddb;
-  --signal-zenodo: #00806f;
+  --signal-gin: #c02a4d;
+  --signal-dryad: #2f7d32;
+  --signal-figshare: #946b00;
+  --signal-zenodo: #0e7490;
   --shadow-card: 0 1px 2px rgb(15 25 34 / 0.06), 0 8px 24px -16px rgb(15 25 34 / 0.24);
 }
 
@@ -80,7 +89,10 @@
   --signal-openneuro: #5b93ff;
   --signal-dandi: #f0954a;
   --signal-neurovault: #a684ff;
-  --signal-zenodo: #22c1a6;
+  --signal-gin: #ff7a95;
+  --signal-dryad: #4caf6a;
+  --signal-figshare: #cfa227;
+  --signal-zenodo: #35bde0;
   --shadow-card: 0 1px 2px rgb(0 0 0 / 0.4), 0 8px 24px -16px rgb(0 0 0 / 0.8);
 }
 

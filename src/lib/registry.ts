@@ -5,10 +5,12 @@ import type { Dataset, Registry, SourceId } from "@/lib/types";
 import { fetchOpenNeuro } from "@/lib/sources/openneuro";
 import { fetchDandi } from "@/lib/sources/dandi";
 import { fetchNeuroVault } from "@/lib/sources/neurovault";
+import { fetchGin } from "@/lib/sources/gin";
+import { fetchDryad } from "@/lib/sources/dryad";
+import { fetchFigshare } from "@/lib/sources/figshare";
 import { fetchZenodo } from "@/lib/sources/zenodo";
 
 const CACHE_FILE = path.join(process.cwd(), "data", "registry.json");
-const MAX_AGE_MS = 24 * 60 * 60 * 1000;
 
 let memory: Registry | null = null;
 let inFlight: Promise<Registry> | null = null;
@@ -17,6 +19,9 @@ const LOADERS: { source: SourceId; load: () => Promise<Dataset[]> }[] = [
   { source: "openneuro", load: () => fetchOpenNeuro() },
   { source: "dandi", load: () => fetchDandi() },
   { source: "neurovault", load: () => fetchNeuroVault() },
+  { source: "gin", load: () => fetchGin() },
+  { source: "dryad", load: () => fetchDryad() },
+  { source: "figshare", load: () => fetchFigshare() },
   { source: "zenodo", load: () => fetchZenodo() },
 ];
 
@@ -89,8 +94,13 @@ function dedupe(datasets: Dataset[]): Dataset[] {
   return [...kept, ...winner.values()];
 }
 
+/**
+ * Serves whatever index is on disk, however old. A live ingest takes minutes, so
+ * it only runs when there is nothing cached at all — refreshing is deliberate,
+ * via `npm run ingest` or POST /api/refresh, never a blocked page request.
+ */
 export async function getRegistry(): Promise<Registry> {
-  if (memory && Date.now() - Date.parse(memory.fetchedAt) < MAX_AGE_MS) return memory;
+  if (memory) return memory;
   if (inFlight) return inFlight;
 
   inFlight = (async () => {

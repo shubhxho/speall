@@ -46,6 +46,74 @@ const MODALITY_ALIASES: Record<string, string> = {
   genomics: "genomics",
   transcriptomics: "genomics",
   "rna sequencing": "genomics",
+  "single cell rna": "genomics",
+
+  // Free-text sources (GIN, Dryad, Figshare, Zenodo) describe methods in prose
+  // rather than controlled terms, so the map has to cover how people write.
+  "magnetic resonance": "mri",
+  t1weighted: "mri",
+  "structural scan": "mri",
+  "resting state": "fmri",
+  "resting-state": "fmri",
+  "blood oxygen": "fmri",
+  "task fmri": "fmri",
+  tractography: "dwi",
+  dti: "dwi",
+  "diffusion weighted": "dwi",
+  "diffusion tensor": "dwi",
+  "amyloid pet": "pet",
+  "tau pet": "pet",
+  "event related potential": "eeg",
+  "event-related potential": "eeg",
+  erp: "eeg",
+  "evoked potential": "eeg",
+  "scalp recording": "eeg",
+  "near infrared spectroscopy": "nirs",
+  "near-infrared spectroscopy": "nirs",
+  "stereo eeg": "ieeg",
+  seeg: "ieeg",
+  intracranial: "ieeg",
+  "depth electrode": "ieeg",
+  "spike train": "ephys",
+  "spike sorted": "ephys",
+  "single unit": "ephys",
+  "single-unit": "ephys",
+  "multi unit": "ephys",
+  "multi-unit": "ephys",
+  "local field potential": "ephys",
+  lfp: "ephys",
+  neuropixels: "ephys",
+  tetrode: "ephys",
+  "silicon probe": "ephys",
+  "unit recording": "ephys",
+  "patch clamp": "icephys",
+  "patch-clamp": "icephys",
+  "whole cell": "icephys",
+  "whole-cell": "icephys",
+  "membrane potential": "icephys",
+  "two photon": "ophys",
+  "two-photon": "ophys",
+  "2 photon": "ophys",
+  "widefield imaging": "ophys",
+  "wide field imaging": "ophys",
+  "voltage imaging": "ophys",
+  gcamp: "ophys",
+  "light sheet": "microscopy",
+  "light-sheet": "microscopy",
+  "confocal microscopy": "microscopy",
+  "electron microscopy": "microscopy",
+  immunohistochem: "microscopy",
+  "connectomics": "microscopy",
+  "eye tracking": "behavior",
+  "eye-tracking": "behavior",
+  "reaction time": "behavior",
+  "behavioural": "behavior",
+  "open field test": "behavior",
+  "psychophysics": "behavior",
+  "questionnaire": "behavior",
+  "statistical map": "statmap",
+  "group level map": "statmap",
+  "contrast map": "statmap",
 };
 
 export function normalizeModality(raw: string): string {
@@ -65,6 +133,39 @@ export function normalizeModalities(raw: (string | null | undefined)[]): string[
   }
   if (out.size > 1) out.delete("other");
   return [...out];
+}
+
+/**
+ * Word-boundary matched so short aliases stay honest: "pet" must not fire on
+ * "competition", "erp" must not fire on "interpretation".
+ */
+const ALIAS_PATTERNS: [RegExp, string][] = Object.entries(MODALITY_ALIASES).map(
+  ([alias, slug]) => [
+    new RegExp(`\\b${alias.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`, "i"),
+    slug,
+  ],
+);
+
+/** Every modality mentioned anywhere in a block of prose, not just the first. */
+export function modalitiesFromText(text: string): string[] {
+  const out = new Set<string>();
+  for (const [pattern, slug] of ALIAS_PATTERNS) {
+    if (pattern.test(text)) out.add(slug);
+  }
+  out.delete("other");
+  return [...out];
+}
+
+/**
+ * Archives without a controlled vocabulary describe their methods in prose, so
+ * keywords and free text are both mined and merged.
+ */
+export function deriveModalities(terms: string[], text: string): string[] {
+  const merged = new Set([...modalitiesFromText([...terms, text].join(" "))]);
+  if (!merged.size) {
+    for (const modality of normalizeModalities(terms)) merged.add(modality);
+  }
+  return merged.size ? [...merged] : ["other"];
 }
 
 const SPECIES_ALIASES: [RegExp, string][] = [

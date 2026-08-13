@@ -15,6 +15,20 @@ import { buildChips } from "@/lib/chips";
 
 const PER_PAGE = 25;
 
+const NUMBER_WORDS = [
+  "No", "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine", "Ten",
+];
+
+function archiveWord(count: number): string {
+  return NUMBER_WORDS[count] ?? String(count);
+}
+
+/** "A, B, C and D" — reads as prose, stays correct as archives are added. */
+function listArchives(labels: string[]): string {
+  if (labels.length < 2) return labels[0] ?? "";
+  return `${labels.slice(0, -1).join(", ")} and ${labels[labels.length - 1]}`;
+}
+
 export default async function Home({ searchParams }: PageProps<"/">) {
   const resolved = await searchParams;
   const params = new URLSearchParams();
@@ -38,6 +52,7 @@ export default async function Home({ searchParams }: PageProps<"/">) {
     species: query.species,
   };
   const failed = registry.report.filter((row) => !row.ok);
+  const archiveLabels = Object.values(SOURCES).map((meta) => meta.label);
 
   return (
     <div className="mx-auto flex w-full max-w-[1180px] flex-col px-4 sm:px-6 lg:px-8">
@@ -53,12 +68,12 @@ export default async function Home({ searchParams }: PageProps<"/">) {
 
       <section className="border-b border-hairline py-8 sm:py-10">
         <h1 className="max-w-[19ch] font-display text-[2.1rem] leading-[1.05] font-extrabold tracking-[-0.035em] text-ink sm:text-[3.1rem]">
-          Four archives. One search field.
+          {archiveWord(archiveLabels.length)} archives. One search field.
         </h1>
         <p className="mt-4 max-w-[62ch] text-[0.9375rem] leading-relaxed text-ink-muted">
           Open neuroscience data is spread across archives that share no vocabulary and no search.
-          Speall indexes {formatCount(registry.datasets.length)} public datasets from OpenNeuro,
-          DANDI, NeuroVault and Zenodo, maps their modality and species labels onto one scheme, and
+          Speall indexes {formatCount(registry.datasets.length)} public datasets from{" "}
+          {listArchives(archiveLabels)}, maps their modality and species labels onto one scheme, and
           puts them behind a single query.
         </p>
 
@@ -142,9 +157,11 @@ export default async function Home({ searchParams }: PageProps<"/">) {
             ))}
         </div>
         <p className="mt-3 max-w-[74ch] text-[0.8125rem] leading-relaxed text-ink-muted">
-          OpenNeuro, DANDI and NeuroVault are indexed in full. Zenodo has no neuroscience-only
-          endpoint, so it contributes its most recent matching deposits rather than complete
-          coverage. Records mirrored from a primary archive are dropped in favour of the original.
+          OpenNeuro, DANDI, NeuroVault and GIN are indexed in full — they are neuroscience
+          archives end to end. Dryad, Figshare and Zenodo host every discipline and have no
+          neuroscience-only endpoint, so they are swept by topic query and contribute matching
+          deposits rather than complete coverage. Where the same DOI appears twice, the primary
+          archive wins and the mirror is dropped.
         </p>
         {failed.length > 0 && (
           <p className="readout mt-3 text-ink-muted">

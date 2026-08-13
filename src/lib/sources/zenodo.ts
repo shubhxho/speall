@@ -1,6 +1,6 @@
 import type { Dataset } from "@/lib/types";
-import { normalizeModalities, normalizeSpecies, plainText } from "@/lib/normalize";
-import { fetchWithRetry } from "@/lib/http";
+import { deriveModalities, normalizeSpecies, plainText } from "@/lib/normalize";
+import { delay, fetchWithRetry } from "@/lib/http";
 
 const BASE = "https://zenodo.org/api/records";
 
@@ -42,10 +42,11 @@ interface Record {
 /** Anonymous Zenodo requests are capped at 25 records per page. */
 const PAGE = 25;
 
-export async function fetchZenodo(pages = 32): Promise<Dataset[]> {
+export async function fetchZenodo(pages = 100): Promise<Dataset[]> {
   const out: Dataset[] = [];
 
   for (let page = 1; page <= pages; page++) {
+    if (page > 1) await delay(1100); // Guest quota is 60 requests per minute.
     const url = `${BASE}?${new URLSearchParams({
       q: QUERY,
       type: "dataset",
@@ -81,7 +82,7 @@ function toDataset(r: Record): Dataset {
     name: m.title,
     description: plainText(m.description),
     authors: (m.creators ?? []).map((c) => c.name ?? "").filter(Boolean),
-    modalities: normalizeModalities(terms.length ? terms : [haystack]),
+    modalities: deriveModalities(terms, `${haystack} ${plainText(m.description, 400) ?? ""}`),
     species: normalizeSpecies([haystack, plainText(m.description, 400) ?? ""]),
     tasks: [],
     files: r.files?.length,

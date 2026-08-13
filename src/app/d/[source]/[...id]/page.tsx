@@ -7,9 +7,14 @@ import { formatBytes, formatCount } from "@/lib/normalize";
 import { MODALITY_LABELS, SOURCES } from "@/lib/types";
 import { ThemeToggle } from "@/components/theme-toggle";
 
-export async function generateMetadata({ params }: PageProps<"/d/[source]/[id]">): Promise<Metadata> {
+/** DOIs and GIN repo paths contain slashes, so the id arrives as path segments. */
+function joinId(segments: string[]): string {
+  return segments.map(decodeURIComponent).join("/");
+}
+
+export async function generateMetadata({ params }: PageProps<"/d/[source]/[...id]">): Promise<Metadata> {
   const { source, id } = await params;
-  const dataset = await getDataset(source, decodeURIComponent(id));
+  const dataset = await getDataset(source, joinId(id));
   if (!dataset) return { title: "Dataset not found — Speall" };
   return {
     title: `${dataset.name} — Speall`,
@@ -17,9 +22,9 @@ export async function generateMetadata({ params }: PageProps<"/d/[source]/[id]">
   };
 }
 
-export default async function DatasetPage({ params }: PageProps<"/d/[source]/[id]">) {
+export default async function DatasetPage({ params }: PageProps<"/d/[source]/[...id]">) {
   const { source, id } = await params;
-  const dataset = await getDataset(source, decodeURIComponent(id));
+  const dataset = await getDataset(source, joinId(id));
   if (!dataset) notFound();
 
   const meta = SOURCES[dataset.source];

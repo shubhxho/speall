@@ -8,6 +8,12 @@ import { formatBytes, formatCount } from "@/lib/normalize";
  * One dataset drawn as a recording channel: the archive's signal color runs
  * down the left edge, everything an instrument would print is monospaced.
  */
+/** Slashes in an id (DOIs, GIN repo paths) stay path separators. */
+export function datasetHref(dataset: Dataset): string {
+  const id = dataset.id.split("/").map(encodeURIComponent).join("/");
+  return `/d/${dataset.source}/${id}`;
+}
+
 export function DatasetRow({ dataset }: { dataset: Dataset }) {
   const source = SOURCES[dataset.source];
   const authors = dataset.authors.slice(0, 3).join(", ");
@@ -16,7 +22,7 @@ export function DatasetRow({ dataset }: { dataset: Dataset }) {
   return (
     <li className="group relative">
       <Link
-        href={`/d/${dataset.source}/${encodeURIComponent(dataset.id)}`}
+        href={datasetHref(dataset)}
         className="block border border-hairline bg-surface pl-4 pr-4 py-4 shadow-[var(--shadow-card)] transition-colors hover:border-hairline-strong sm:pl-5"
       >
         <span

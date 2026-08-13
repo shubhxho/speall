@@ -1,4 +1,11 @@
-export type SourceId = "openneuro" | "dandi" | "neurovault" | "zenodo";
+export type SourceId =
+  | "openneuro"
+  | "dandi"
+  | "neurovault"
+  | "gin"
+  | "dryad"
+  | "figshare"
+  | "zenodo";
 
 export interface SourceMeta {
   id: SourceId;
@@ -31,6 +38,27 @@ export const SOURCES: Record<SourceId, SourceMeta> = {
     blurb: "Unthresholded statistical maps from published fMRI studies.",
     home: "https://neurovault.org",
     token: "--signal-neurovault",
+  },
+  gin: {
+    id: "gin",
+    label: "GIN",
+    blurb: "G-Node's versioned data repositories, mostly raw lab recordings.",
+    home: "https://gin.g-node.org",
+    token: "--signal-gin",
+  },
+  dryad: {
+    id: "dryad",
+    label: "Dryad",
+    blurb: "Data behind published papers, curated and DOI-minted.",
+    home: "https://datadryad.org",
+    token: "--signal-dryad",
+  },
+  figshare: {
+    id: "figshare",
+    label: "Figshare",
+    blurb: "Institutional and author deposits across every discipline.",
+    home: "https://figshare.com",
+    token: "--signal-figshare",
   },
   zenodo: {
     id: "zenodo",
