@@ -1,31 +1,47 @@
 import type { Metadata } from "next";
-import { Bricolage_Grotesque, IBM_Plex_Mono, IBM_Plex_Sans } from "next/font/google";
+import localFont from "next/font/local";
 import "./globals.css";
 
-const display = Bricolage_Grotesque({
+/*
+  Fonts are self-hosted rather than fetched from Google at build time.
+  next/font/google downloads from fonts.gstatic.com during the build, and a 404
+  from that CDN broke CI while the same commit built fine on Vercel. Committing
+  the woff2 files makes the build hermetic and drops a third-party request.
+*/
+
+const display = localFont({
+  src: "./fonts/BricolageGrotesque-Variable.woff2",
   variable: "--font-bricolage",
-  subsets: ["latin"],
+  weight: "200 800",
   display: "swap",
+  fallback: ["ui-sans-serif", "system-ui", "sans-serif"],
 });
 
-const sans = IBM_Plex_Sans({
+const sans = localFont({
+  src: [
+    { path: "./fonts/IBMPlexSans-400.woff2", weight: "400", style: "normal" },
+    { path: "./fonts/IBMPlexSans-500.woff2", weight: "500", style: "normal" },
+    { path: "./fonts/IBMPlexSans-600.woff2", weight: "600", style: "normal" },
+  ],
   variable: "--font-plex-sans",
-  weight: ["400", "500", "600"],
-  subsets: ["latin"],
   display: "swap",
+  fallback: ["ui-sans-serif", "system-ui", "sans-serif"],
 });
 
-const mono = IBM_Plex_Mono({
+const mono = localFont({
+  src: [
+    { path: "./fonts/IBMPlexMono-400.woff2", weight: "400", style: "normal" },
+    { path: "./fonts/IBMPlexMono-500.woff2", weight: "500", style: "normal" },
+  ],
   variable: "--font-plex-mono",
-  weight: ["400", "500"],
-  subsets: ["latin"],
   display: "swap",
+  fallback: ["ui-monospace", "monospace"],
 });
 
 export const metadata: Metadata = {
   title: "Speall — open neuroscience datasets, one index",
   description:
-    "Search OpenNeuro, DANDI, NeuroVault and Zenodo in one place. Filter by modality, species, subjects and year.",
+    "Search OpenNeuro, DANDI, NeuroVault, GIN, Dryad, Figshare and Zenodo in one place. Filter by modality, species, recording channels and year.",
 };
 
 /** Applies the stored theme before paint so the page never flashes the wrong one. */
