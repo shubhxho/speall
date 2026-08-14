@@ -1,11 +1,27 @@
+import { Suspense } from "react";
+
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { cacheLife } from "next/cache";
 import type { Metadata } from "next";
 
-import { getDataset } from "@/lib/registry";
+import { getCachedRegistry } from "@/lib/registry";
 import { formatBytes, formatCount } from "@/lib/normalize";
 import { MODALITY_LABELS, SOURCES } from "@/lib/types";
 import { ThemeToggle } from "@/components/theme-toggle";
+
+/**
+ * Detail pages read no search params, so the whole render is a pure function of
+ * the URL. Caching it means a dataset view is served from the edge instead of
+ * paying a cold start. The index is a committed snapshot, so an hour of
+ * freshness costs nothing.
+ */
+async function renderDataset(source: string, id: string) {
+  "use cache";
+  cacheLife("hours");
+  const { datasets } = await getCachedRegistry();
+  return datasets.find((d) => d.source === source && d.id === id);
+}
 
 /** DOIs and GIN repo paths contain slashes, so the id arrives as path segments. */
 function joinId(segments: string[]): string {
@@ -14,7 +30,7 @@ function joinId(segments: string[]): string {
 
 export async function generateMetadata({ params }: PageProps<"/d/[source]/[...id]">): Promise<Metadata> {
   const { source, id } = await params;
-  const dataset = await getDataset(source, joinId(id));
+  const dataset = await renderDataset(source, joinId(id));
   if (!dataset) return { title: "Dataset not found — Speall" };
   return {
     title: `${dataset.name} — Speall`,
@@ -22,14 +38,7 @@ export async function generateMetadata({ params }: PageProps<"/d/[source]/[...id
   };
 }
 
-export default async function DatasetPage({ params }: PageProps<"/d/[source]/[...id]">) {
-  const { source, id } = await params;
-  const dataset = await getDataset(source, joinId(id));
-  if (!dataset) notFound();
-
-  const meta = SOURCES[dataset.source];
-  const color = `var(${meta.token})`;
-
+export default function DatasetPage({ params }: PageProps<"/d/[source]/[...id]">) {
   return (
     <div className="mx-auto flex w-full max-w-[880px] flex-col px-4 sm:px-6 lg:px-8">
       <header className="flex items-center justify-between gap-4 border-b border-hairline py-4">
@@ -42,6 +51,23 @@ export default async function DatasetPage({ params }: PageProps<"/d/[source]/[..
         <ThemeToggle />
       </header>
 
+      <Suspense fallback={<div className="h-[70vh] animate-pulse rounded bg-surface-2" />}>
+        <Detail params={params} />
+      </Suspense>
+    </div>
+  );
+}
+
+async function Detail({ params }: { params: PageProps<"/d/[source]/[...id]">["params"] }) {
+  const { source, id } = await params;
+  const dataset = await renderDataset(source, joinId(id));
+  if (!dataset) notFound();
+
+  const meta = SOURCES[dataset.source];
+  const color = `var(${meta.token})`;
+
+  return (
+    <>
       <article className="relative border-x border-b border-hairline bg-surface px-5 py-8 shadow-[var(--shadow-card)] sm:px-8 sm:py-10">
         <span className="absolute inset-x-0 top-0 h-[3px]" style={{ background: color }} aria-hidden />
 
@@ -139,7 +165,7 @@ export default async function DatasetPage({ params }: PageProps<"/d/[source]/[..
           More from {meta.label}
         </Link>
       </nav>
-    </div>
+    </>
   );
 }
 

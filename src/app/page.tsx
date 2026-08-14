@@ -1,6 +1,6 @@
 import { Suspense } from "react";
 
-import { getRegistry } from "@/lib/registry";
+import { getCachedRegistry } from "@/lib/registry";
 import { applyQuery, parseQuery } from "@/lib/query";
 import { buildRaster } from "@/lib/raster";
 import { formatCount } from "@/lib/normalize";
@@ -31,7 +31,50 @@ function listArchives(labels: string[]): string {
   return `${labels.slice(0, -1).join(", ")} and ${labels[labels.length - 1]}`;
 }
 
-export default async function Home({ searchParams }: PageProps<"/">) {
+/**
+ * The shell prerenders; everything that depends on the URL's query lives in
+ * <Browse> behind a Suspense boundary. Under Cache Components that is what lets
+ * the cached parts be served without running the function per request.
+ */
+export default function Home({ searchParams }: PageProps<"/">) {
+  return (
+    <div className="mx-auto flex w-full max-w-[1180px] flex-col px-4 sm:px-6 lg:px-8">
+      <Suspense fallback={null}>
+        <ProgressBar />
+      </Suspense>
+
+      <header className="flex items-center justify-between gap-4 border-b border-hairline py-4">
+        <div className="flex items-baseline gap-3">
+          <span className="font-display text-lg font-extrabold tracking-[-0.03em] text-ink">
+            Speall
+          </span>
+          <span className="readout hidden text-ink-faint sm:inline">Open neuro data index</span>
+        </div>
+        <ThemeToggle />
+      </header>
+
+      <Suspense fallback={<BrowseSkeleton />}>
+        <Browse searchParams={searchParams} />
+      </Suspense>
+    </div>
+  );
+}
+
+/** Holds the layout while the query resolves, so the page does not jump. */
+function BrowseSkeleton() {
+  return (
+    <div className="py-7">
+      <div className="h-[104px] animate-pulse rounded bg-surface-2" />
+      <div className="mt-8 h-[60vh] animate-pulse rounded bg-surface-2" />
+    </div>
+  );
+}
+
+async function Browse({
+  searchParams,
+}: {
+  searchParams: PageProps<"/">["searchParams"];
+}) {
   const resolved = await searchParams;
   const params = new URLSearchParams();
   for (const [key, value] of Object.entries(resolved)) {
@@ -40,7 +83,7 @@ export default async function Home({ searchParams }: PageProps<"/">) {
   }
 
   const query = parseQuery(params);
-  const registry = await getRegistry();
+  const registry = await getCachedRegistry();
   const { results, facets } = applyQuery(registry.datasets, query);
   const raster = buildRaster(registry.datasets, new Set(results.map((d) => d.uid)));
 
@@ -62,21 +105,7 @@ export default async function Home({ searchParams }: PageProps<"/">) {
   const summary = `${formatCount(results.length)} datasets${range}`;
 
   return (
-    <div className="mx-auto flex w-full max-w-[1180px] flex-col px-4 sm:px-6 lg:px-8">
-      <Suspense fallback={null}>
-        <ProgressBar />
-      </Suspense>
-
-      <header className="flex items-center justify-between gap-4 border-b border-hairline py-4">
-        <div className="flex items-baseline gap-3">
-          <span className="font-display text-lg font-extrabold tracking-[-0.03em] text-ink">
-            Speall
-          </span>
-          <span className="readout hidden text-ink-faint sm:inline">Open neuro data index</span>
-        </div>
-        <ThemeToggle />
-      </header>
-
+    <>
       {/* Text and raster sit side by side on wide screens: stacked, the hero
           pushed every result below the fold at 1440x900. */}
       <section className="border-b border-hairline py-7 lg:grid lg:grid-cols-[minmax(0,30rem)_minmax(0,1fr)] lg:items-end lg:gap-12">
@@ -191,7 +220,7 @@ export default async function Home({ searchParams }: PageProps<"/">) {
           </p>
         )}
       </footer>
-    </div>
+    </>
   );
 }
 

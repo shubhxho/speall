@@ -2,7 +2,8 @@ import { NextResponse } from "next/server";
 
 import { ingest } from "@/lib/registry";
 
-export const dynamic = "force-dynamic";
+// POST handlers are uncached by default; cacheComponents rejects the
+// explicit "force-dynamic" segment config.
 export const maxDuration = 300;
 
 /**

@@ -1,6 +1,8 @@
 import { promises as fs } from "node:fs";
 import path from "node:path";
 
+import { cacheLife } from "next/cache";
+
 import type { Dataset, Registry, SourceId } from "@/lib/types";
 import { fetchOpenNeuro } from "@/lib/sources/openneuro";
 import { fetchDandi } from "@/lib/sources/dandi";
@@ -192,6 +194,17 @@ async function writeCache(registry: Registry): Promise<void> {
   } catch {
     // Read-only filesystem (serverless): the in-memory copy still serves.
   }
+}
+
+/**
+ * Cache-Components entry point. The underlying file is a committed snapshot
+ * that only changes on a refresh deploy, so caching the parsed result lets
+ * pages prerender instead of re-reading it per request.
+ */
+export async function getCachedRegistry(): Promise<Registry> {
+  "use cache";
+  cacheLife("hours");
+  return getRegistry();
 }
 
 export async function getDataset(source: string, id: string): Promise<Dataset | undefined> {
