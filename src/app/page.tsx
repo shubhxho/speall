@@ -11,6 +11,7 @@ import { FilterRail } from "@/components/filter-rail";
 import { Pagination } from "@/components/pagination";
 import { RasterBand } from "@/components/raster-band";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { ProgressBar } from "@/components/progress-bar";
 import { Toolbar } from "@/components/toolbar";
 import { buildChips } from "@/lib/chips";
 
@@ -62,6 +63,10 @@ export default async function Home({ searchParams }: PageProps<"/">) {
 
   return (
     <div className="mx-auto flex w-full max-w-[1180px] flex-col px-4 sm:px-6 lg:px-8">
+      <Suspense fallback={null}>
+        <ProgressBar />
+      </Suspense>
+
       <header className="flex items-center justify-between gap-4 border-b border-hairline py-4">
         <div className="flex items-baseline gap-3">
           <span className="font-display text-lg font-extrabold tracking-[-0.03em] text-ink">
@@ -72,29 +77,32 @@ export default async function Home({ searchParams }: PageProps<"/">) {
         <ThemeToggle />
       </header>
 
-      <section className="border-b border-hairline py-8 sm:py-10">
-        <h1 className="max-w-[19ch] font-display text-[2.1rem] leading-[1.05] font-extrabold tracking-[-0.035em] text-ink sm:text-[3.1rem]">
-          {archiveWord(archiveLabels.length)} archives. One search field.
-        </h1>
-        <p className="mt-4 max-w-[62ch] text-[0.9375rem] leading-relaxed text-ink-muted">
-          Open neuroscience data is spread across archives that share no vocabulary and no search.
-          Speall indexes {formatCount(registry.datasets.length)} public datasets from{" "}
-          {listArchives(archiveLabels)}, maps their modality and species labels onto one scheme, and
-          puts them behind a single query.
-        </p>
+      {/* Text and raster sit side by side on wide screens: stacked, the hero
+          pushed every result below the fold at 1440x900. */}
+      <section className="border-b border-hairline py-7 lg:grid lg:grid-cols-[minmax(0,30rem)_minmax(0,1fr)] lg:items-end lg:gap-12">
+        <div>
+          <h1 className="max-w-[16ch] font-display text-[1.9rem] leading-[1.05] font-extrabold tracking-[-0.035em] text-ink sm:text-[2.4rem]">
+            {archiveWord(archiveLabels.length)} archives. One search field.
+          </h1>
+          <p className="mt-3 max-w-[54ch] text-[0.875rem] leading-relaxed text-ink-muted">
+            Open neuroscience data is scattered across archives that share no vocabulary and no
+            search. Speall indexes {formatCount(registry.datasets.length)} public datasets from{" "}
+            {listArchives(archiveLabels)} under one scheme.
+          </p>
+        </div>
 
-        <div className="mt-8">
+        <div className="mt-7 lg:mt-0">
           <div className="mb-2 flex items-baseline justify-between gap-4">
             <h2 className="readout text-ink-faint">Deposits per month, by archive</h2>
-            <p className="readout hidden text-ink-faint sm:block">Drag across to filter by year</p>
+            <p className="readout hidden text-ink-faint sm:block">Drag to filter by year</p>
           </div>
-          <Suspense fallback={<div className="h-[118px]" />}>
+          <Suspense fallback={<div className="h-[104px]" />}>
             <RasterBand raster={raster} from={query.from} to={query.to} />
           </Suspense>
         </div>
       </section>
 
-      <div className="grid flex-1 gap-8 py-8 lg:grid-cols-[210px_minmax(0,1fr)] lg:gap-10">
+      <div className="grid flex-1 gap-8 py-6 lg:grid-cols-[200px_minmax(0,1fr)] lg:gap-10">
         <aside className="min-w-0 lg:sticky lg:top-6 lg:self-start">
           <details className="lg:hidden" name="filters">
             <summary className="readout cursor-pointer list-none border border-hairline bg-surface px-3 py-2 text-ink [&::-webkit-details-marker]:hidden">

@@ -6,8 +6,18 @@ import type { Raster } from "@/lib/raster";
 import { SOURCES } from "@/lib/types";
 import { useQueryNav } from "@/components/use-query-nav";
 
-const LANE_HEIGHT = 22;
-const LANE_GAP = 5;
+/** "2019-04" reads as "Apr 2019" in the hover readout. */
+const MONTH_NAMES = [
+  "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
+];
+
+function formatMonth(month: string): string {
+  const [year, index] = month.split("-");
+  return `${MONTH_NAMES[Number(index) - 1] ?? index} ${year}`;
+}
+
+const LANE_HEIGHT = 14;
+const LANE_GAP = 4;
 
 interface Props {
   raster: Raster;
@@ -23,6 +33,8 @@ export function RasterBand({ raster, from, to }: Props) {
   const { commit } = useQueryNav();
   const frameRef = useRef<HTMLDivElement>(null);
   const [drag, setDrag] = useState<{ a: number; b: number } | null>(null);
+  /** Column under the pointer, for the readout. */
+  const [hover, setHover] = useState<number | null>(null);
 
   const { months, years, lanes } = raster;
   const columns = months.length;
@@ -77,6 +89,16 @@ export function RasterBand({ raster, from, to }: Props) {
     });
   }, [lanes, columns]);
 
+  const positionToColumn = useCallback(
+    (clientX: number) => {
+      const rect = frameRef.current?.getBoundingClientRect();
+      if (!rect || !columns) return null;
+      const ratio = Math.min(0.9999, Math.max(0, (clientX - rect.left) / rect.width));
+      return Math.floor(ratio * columns);
+    },
+    [columns],
+  );
+
   const positionToYear = useCallback(
     (clientX: number) => {
       const rect = frameRef.current?.getBoundingClientRect();
@@ -95,6 +117,7 @@ export function RasterBand({ raster, from, to }: Props) {
   }
 
   function onPointerMove(event: React.PointerEvent<HTMLDivElement>) {
+    setHover(positionToColumn(event.clientX));
     if (!drag) return;
     const year = positionToYear(event.clientX);
     if (year !== null) setDrag({ ...drag, b: year });
@@ -128,7 +151,7 @@ export function RasterBand({ raster, from, to }: Props) {
   if (!columns) return null;
 
   return (
-    <figure className="m-0">
+    <figure className="relative m-0">
       <div
         ref={frameRef}
         className="relative cursor-crosshair touch-none select-none"
@@ -137,6 +160,7 @@ export function RasterBand({ raster, from, to }: Props) {
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
         onPointerCancel={() => setDrag(null)}
+        onPointerLeave={() => setHover(null)}
       >
         {labelYears.map((year) => (
           <span
@@ -186,6 +210,35 @@ export function RasterBand({ raster, from, to }: Props) {
           })}
         </svg>
       </div>
+
+      {hover !== null && (
+        <div
+          className="pointer-events-none absolute z-10 -translate-x-1/2 translate-y-1 border border-hairline bg-surface px-2.5 py-1.5 shadow-[var(--shadow-card)]"
+          style={{
+            left: `${Math.min(92, Math.max(8, ((hover + 0.5) / columns) * 100))}%`,
+          }}
+          role="status"
+        >
+          <p className="readout text-ink">{formatMonth(months[hover])}</p>
+          {lanes.some((lane) => lane.total[hover]) ? (
+            lanes
+              .filter((lane) => lane.total[hover])
+              .map((lane) => (
+                <p key={lane.source} className="tick mt-0.5 flex items-center gap-1.5 text-[11px]">
+                  <span
+                    className="h-2 w-2 rounded-[1px]"
+                    style={{ background: `var(${SOURCES[lane.source].token})` }}
+                    aria-hidden
+                  />
+                  <span className="text-ink-muted">{SOURCES[lane.source].label}</span>
+                  <span className="ml-auto pl-3 text-ink">{lane.total[hover]}</span>
+                </p>
+              ))
+          ) : (
+            <p className="tick mt-0.5 text-[11px] text-ink-faint">No deposits</p>
+          )}
+        </div>
+      )}
 
       <div className="relative mt-1 h-4" aria-hidden>
         {labelYears.map((year) => (
